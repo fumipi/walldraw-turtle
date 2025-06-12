@@ -93,10 +93,6 @@ class WallPlotter:
         
         print(f"Step differences - M1: {steps_diff_m1}, M2: {steps_diff_m2}")
         
-        # dir1 = -1 * INVERT_M1_DIR if steps_diff_m1 > 0 else INVERT_M1_DIR
-        # dir2 = -1 * INVERT_M2_DIR if steps_diff_m2 > 0 else INVERT_M2_DIR
-
-        # Alternative approach 意味は同じ
         dir1 = -1 if steps_diff_m1 * INVERT_M1_DIR > 0 else 1
         dir2 = -1 if steps_diff_m2 * INVERT_M2_DIR > 0 else 1
     
@@ -134,105 +130,103 @@ class WallPlotter:
         print(f"Move completed - now at ({self.current_position[X_AXIS]}, {self.current_position[Y_AXIS]})")
         print(f"Updated steps - M1: {self.current_steps_M1}, M2: {self.current_steps_M2}")
     
-    def buffer_line_to_destination(self):
-        """Draw a line to the destination coordinates"""
-        # Handle Z axis (pen up/down)
-        if self.destination[Z_AXIS] == 1:
-            self.pen_down()
-        elif self.destination[Z_AXIS] > 1:
-            self.pen_up()
+    def read_csv_and_plot(self, filename="points.csv", target_width=100, target_height=100):
+        """Read coordinates from CSV file and control the plotter to draw them"""
+        print(f"Opening file: {filename}")
         
-        # Calculate distance to move
-        cartesian_mm = math.sqrt(
-            (self.current_position[X_AXIS] - self.destination[X_AXIS])**2 +
-            (self.current_position[Y_AXIS] - self.destination[Y_AXIS])**2
-        )
-        
-        # If distance is very small, just do a direct move
-        if cartesian_mm <= DEFAULT_XY_MM_PER_STEP:
-            self.moveto(self.destination[X_AXIS], self.destination[Y_AXIS])
-            return
-        
-        # Break long moves into smaller segments
-        steps = math.floor(cartesian_mm / DEFAULT_XY_MM_PER_STEP)
-        init_X = self.current_position[X_AXIS]
-        init_Y = self.current_position[Y_AXIS]
-        
-        for s in range(steps + 1):
-            scale = s / steps
-            self.moveto(
-                (self.destination[X_AXIS] - init_X) * scale + init_X,
-                (self.destination[Y_AXIS] - init_Y) * scale + init_Y
-            )
-        
-        # Ensure we reach the exact destination
-        self.moveto(self.destination[X_AXIS], self.destination[Y_AXIS])
+        try:
+            # First pass: determine bounds of input data
+            min_x, max_x, min_y, max_y = float('inf'), float('-inf'), float('inf'), float('-inf')
+            
+            with open(filename, "r") as file:
+                for line in file:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    points_str = line.split(';')
+                    for point_str in points_str:
+                        try:
+                            x_str, y_str = point_str.split(',')
+                            x = float(x_str)
+                            y = float(y_str)
+                            
+                            min_x = min(min_x, x)
+                            max_x = max(max_x, x)
+                            min_y = min(min_y, y)
+                            max_y = max(max_y, y)
+                        except ValueError:
+                            pass  # Skip invalid points in first pass
+            
+            if min_x == float('inf') or max_x == float('-inf') or min_y == float('inf') or max_y == float('-inf'):
+                print("No valid points found in file")
+                return False
+                
+            # Calculate scaling factors
+            input_width = max_x - min_x
+            input_height = max_y - min_y
+            
+            # Scaling factor to maintain aspect ratio
+            scale_factor = min(target_width / input_width, target_height / input_height)
+            
+            input_center_x = (min_x + max_x) / 2
+            input_center_y = (min_y + max_y) / 2
+            
+            print(f"Input bounds: X: {min_x} to {max_x}, Y: {min_y} to {max_y}")
+            print(f"Scaling factor: {scale_factor}")
+            
+            # Second pass: read and plot with proper scaling
+            with open(filename, "r") as file:
+                for line_num, line in enumerate(file):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    print(f"Processing line {line_num+1}")
+                    points_str = line.split(';')
+                    first_point = True
+                    
+                    for point_str in points_str:
+                        try:
+                            x_str, y_str = point_str.split(',')
+                            x = float(x_str)
+                            y = float(y_str)
+                            
+                            # Transform coordinates:
+                            # 1. Shift relative to input center
+                            # 2. Scale to fit within target dimensions
+                            # 3. Result is centered at (0,0)
+                            x = (x - input_center_x) * scale_factor
+                            y = (y - input_center_y) * scale_factor
+                            
+                            if first_point:
+                                # For the first point, move with pen up
+                                self.pen_up()
+                                time.sleep(0.5)  # Allow time for pen to move up
+                                self.moveto(x, y)
+                                self.pen_down()
+                                time.sleep(0.5)  # Allow time for pen to move down
+                                first_point = False
+                            else:
+                                # For subsequent points, draw lines
+                                self.moveto(x, y)
+                        except ValueError as e:
+                            print(f"Error parsing point {point_str}: {e}")
+                    
+                    # Lift pen at the end of each path
+                    self.pen_up()
+                    time.sleep(0.5)
+                    
+            print("Drawing complete")
+            
+            # Return to home position (0,0) after drawing is complete
+            print("Returning to home position (0,0)")
+            self.moveto(0, 0)
+            print("Returned to home position")
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error reading file: {e}")
+            return False
     
-    def buffer_arc_to_destination(self, offset, clockwise):
-        """Draw an arc to the destination coordinates"""
-        r_P = -offset[0]
-        r_Q = -offset[1]
-        p_axis = X_AXIS
-        q_axis = Y_AXIS
-        
-        radius = HYPOT(r_P, r_Q)
-        center_P = self.current_position[p_axis] - r_P
-        center_Q = self.current_position[q_axis] - r_Q
-        rt_X = self.destination[p_axis] - center_P
-        rt_Y = self.destination[q_axis] - center_Q
-        
-        angular_travel = ATAN2(r_P * rt_Y - r_Q * rt_X, r_P * rt_X + r_Q * rt_Y)
-        print(angular_travel)
-        
-        if angular_travel < 0:
-            angular_travel += RADIANS(360)
-        if clockwise:
-            angular_travel -= RADIANS(360)
-        
-        print(angular_travel)
-        
-        # Handle complete circles
-        if (angular_travel == 0 and 
-            self.current_position[p_axis] == self.destination[p_axis] and 
-            self.current_position[q_axis] == self.destination[q_axis]):
-            angular_travel = RADIANS(360)
-        
-        # Calculate arc length
-        mm_of_travel = HYPOT(angular_travel * radius, 0)
-        if mm_of_travel < 0.001:
-            return
-        
-        print(mm_of_travel)
-        
-        # Divide arc into segments
-        segments = math.floor(mm_of_travel / MM_PER_ARC_SEGMENT)
-        if segments < 1:
-            segments = 1
-        
-        theta_per_segment = angular_travel / segments
-        sin_T = math.sin(theta_per_segment)
-        cos_T = math.cos(theta_per_segment)
-        
-        arc_recalc_count = N_ARC_CORRECTION
-        
-        for i in range(1, segments):
-            if arc_recalc_count == 0:
-                arc_recalc_count = N_ARC_CORRECTION
-                cos_Ti = math.cos(i * theta_per_segment)
-                sin_Ti = math.sin(i * theta_per_segment)
-                r_P = -offset[0] * cos_Ti + offset[1] * sin_Ti
-                r_Q = -offset[0] * sin_Ti - offset[1] * cos_Ti
-            else:
-                r_new_Y = r_P * sin_T + r_Q * cos_T
-                r_P = r_P * cos_T - r_Q * sin_T
-                r_Q = r_new_Y
-                arc_recalc_count -= 1
-            
-            # Calculate next point on arc
-            X = center_P + r_P
-            Y = center_Q + r_Q
-            
-            # Move to this point
-            self.moveto(X, Y)
-            
-            print(f"G0 X{X} Y{Y}") 

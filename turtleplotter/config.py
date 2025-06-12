@@ -36,29 +36,10 @@ DEFAULT_XY_MM_PER_STEP = SPOOL_CIRC / STEPS_PER_TURN  # Min step resolution
 STEPS_PER_SEC = 600
 ACCELERATION = 10000
 
-# Movement parameters
-LINE_DELAY = 1           # Microseconds between steps
-MM_PER_ARC_SEGMENT = 1   # Arc segment length
-N_ARC_CORRECTION = 25    # Correction frequency for arcs
-
 # Axes definitions
 X_AXIS = 0
 Y_AXIS = 1
-Z_AXIS = 2
-XY = 2
-XYZ = 3
 
 # Mathematical constants
 import math
-M_PI = math.pi
-RADIANS = lambda d: (d * M_PI / 180.0)
-ATAN2 = math.atan2
-SQRT = math.sqrt
-HYPOT2 = lambda x, y: (x**2 + y**2)
-HYPOT = lambda x, y: SQRT(HYPOT2(x, y))
-
-# Jog size for manual control
-JOG_SIZE = 100
-
-# Serial communication
-BAUDRATE = 115200 
+M_PI = math.pi 
