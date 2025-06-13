@@ -1,7 +1,7 @@
 import math
 import time
-from stepper import Stepper
-from servo import Servo
+from stepper import SimpleStepper
+from servo import SimpleServo
 from config import *
 
 class WallPlotter:
@@ -9,11 +9,11 @@ class WallPlotter:
     
     def __init__(self):
         # Initialize stepper motors
-        self.m1 = Stepper()
-        self.m2 = Stepper()
+        self.m1 = SimpleStepper()
+        self.m2 = SimpleStepper()
         
         # Initialize servo
-        self.pen = Servo(SERVO_PIN)
+        self.pen = SimpleServo(SERVO_PIN)
         
         # Initialize position tracking
         self.current_position = [START_X, START_Y, 0]
@@ -34,9 +34,7 @@ class WallPlotter:
         
         # Set stepper parameters
         self.m1.set_speed_in_steps_per_second(STEPS_PER_SEC)
-        self.m1.set_acceleration_in_steps_per_second_per_second(ACCELERATION)
         self.m2.set_speed_in_steps_per_second(STEPS_PER_SEC)
-        self.m2.set_acceleration_in_steps_per_second_per_second(ACCELERATION)
         
         # Initialize pen position
         self.pen.write(PEN_UP_ANGLE)
@@ -99,27 +97,42 @@ class WallPlotter:
         print(f"Direction calculations - M1: {dir1}, M2: {dir2}")
         
         over = 0
+        m1_steps_taken = 0  # Debug counter for M1
+        m2_steps_taken = 0  # Debug counter for M2
 
         dif_abs_steps_run_m1 = abs(target_steps_m1 - self.current_steps_M1)
         dif_abs_steps_run_m2 = abs(target_steps_m2 - self.current_steps_M2)
+        
+        print(f"Absolute step differences - M1: {dif_abs_steps_run_m1}, M2: {dif_abs_steps_run_m2}")
         
         # Bresenham line algorithm for coordinated movement
         if dif_abs_steps_run_m1 > dif_abs_steps_run_m2:
             print(f"More steps on M1: {dif_abs_steps_run_m1} vs {dif_abs_steps_run_m2}")
             for i in range(dif_abs_steps_run_m1):
                 self.m1.move_relative_in_steps(dir1)
+                m1_steps_taken += 1  # Debug counter
                 over += dif_abs_steps_run_m2
                 if over >= dif_abs_steps_run_m1:
                     over -= dif_abs_steps_run_m1
                     self.m2.move_relative_in_steps(dir2)
+                    m2_steps_taken += 1  # Debug counter
+                if i % 100 == 0:  # Print progress every 100 steps
+                    print(f"Progress: M1={m1_steps_taken}, M2={m2_steps_taken}, over={over}")
         else:
             print(f"More steps on M2: {dif_abs_steps_run_m2} vs {dif_abs_steps_run_m1}")
             for i in range(dif_abs_steps_run_m2):
                 self.m2.move_relative_in_steps(dir2)
+                m2_steps_taken += 1  # Debug counter
                 over += dif_abs_steps_run_m1
                 if over >= dif_abs_steps_run_m2:
                     over -= dif_abs_steps_run_m2
                     self.m1.move_relative_in_steps(dir1)
+                    m1_steps_taken += 1  # Debug counter
+                if i % 100 == 0:  # Print progress every 100 steps
+                    print(f"Progress: M1={m1_steps_taken}, M2={m2_steps_taken}, over={over}")
+        
+        print(f"Final step counts - M1: {m1_steps_taken}, M2: {m2_steps_taken}")
+        print(f"Final over value: {over}")
         
         # Update position trackers
         self.current_steps_M1 = target_steps_m1
@@ -130,102 +143,41 @@ class WallPlotter:
         print(f"Move completed - now at ({self.current_position[X_AXIS]}, {self.current_position[Y_AXIS]})")
         print(f"Updated steps - M1: {self.current_steps_M1}, M2: {self.current_steps_M2}")
     
-    def read_csv_and_plot(self, filename="points.csv", target_width=100, target_height=100):
+    def read_csv_and_plot(self, filename="points.csv"):
         """Read coordinates from CSV file and control the plotter to draw them"""
         print(f"Opening file: {filename}")
-        
         try:
-            # First pass: determine bounds of input data
-            min_x, max_x, min_y, max_y = float('inf'), float('-inf'), float('inf'), float('-inf')
-            
-            with open(filename, "r") as file:
-                for line in file:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    
-                    points_str = line.split(';')
-                    for point_str in points_str:
-                        try:
-                            x_str, y_str = point_str.split(',')
-                            x = float(x_str)
-                            y = float(y_str)
-                            
-                            min_x = min(min_x, x)
-                            max_x = max(max_x, x)
-                            min_y = min(min_y, y)
-                            max_y = max(max_y, y)
-                        except ValueError:
-                            pass  # Skip invalid points in first pass
-            
-            if min_x == float('inf') or max_x == float('-inf') or min_y == float('inf') or max_y == float('-inf'):
-                print("No valid points found in file")
-                return False
-                
-            # Calculate scaling factors
-            input_width = max_x - min_x
-            input_height = max_y - min_y
-            
-            # Scaling factor to maintain aspect ratio
-            scale_factor = min(target_width / input_width, target_height / input_height)
-            
-            input_center_x = (min_x + max_x) / 2
-            input_center_y = (min_y + max_y) / 2
-            
-            print(f"Input bounds: X: {min_x} to {max_x}, Y: {min_y} to {max_y}")
-            print(f"Scaling factor: {scale_factor}")
-            
-            # Second pass: read and plot with proper scaling
             with open(filename, "r") as file:
                 for line_num, line in enumerate(file):
                     line = line.strip()
                     if not line:
                         continue
-                    
                     print(f"Processing line {line_num+1}")
                     points_str = line.split(';')
                     first_point = True
-                    
                     for point_str in points_str:
                         try:
                             x_str, y_str = point_str.split(',')
                             x = float(x_str)
                             y = float(y_str)
-                            
-                            # Transform coordinates:
-                            # 1. Shift relative to input center
-                            # 2. Scale to fit within target dimensions
-                            # 3. Result is centered at (0,0)
-                            x = (x - input_center_x) * scale_factor
-                            y = (y - input_center_y) * scale_factor
-                            
                             if first_point:
-                                # For the first point, move with pen up
                                 self.pen_up()
-                                time.sleep(0.5)  # Allow time for pen to move up
+                                time.sleep(0.5)
                                 self.moveto(x, y)
                                 self.pen_down()
-                                time.sleep(0.5)  # Allow time for pen to move down
+                                time.sleep(0.5)
                                 first_point = False
                             else:
-                                # For subsequent points, draw lines
                                 self.moveto(x, y)
                         except ValueError as e:
                             print(f"Error parsing point {point_str}: {e}")
-                    
-                    # Lift pen at the end of each path
                     self.pen_up()
                     time.sleep(0.5)
-                    
             print("Drawing complete")
-            
-            # Return to home position (0,0) after drawing is complete
             print("Returning to home position (0,0)")
             self.moveto(0, 0)
             print("Returned to home position")
-            
             return True
-            
         except Exception as e:
             print(f"Error reading file: {e}")
             return False

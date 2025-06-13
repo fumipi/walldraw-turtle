@@ -1,8 +1,12 @@
 from machine import Pin, PWM
 import time
 
-class Servo:
-    """Servo motor control class"""
+class SimpleServo:
+    """A simplified servo motor control library.
+    This is a basic implementation that provides simple angle control (0-180 degrees)
+    using PWM signals. It lacks advanced features like speed control, position feedback,
+    and calibration support that are common in more comprehensive servo libraries.
+    """
     
     def __init__(self, pin_num):
         """Initialize servo on the specified pin"""

@@ -3,7 +3,10 @@ import time
 import math
 from config import *
 
-class Stepper:
+class SimpleStepper:
+    """A simplified stepper motor control library for 28BYJ-48 stepper motors.
+    This is a basic implementation that provides constant speed movement without acceleration.
+    """
     
     # Full step sequence for 28BYJ-48
     STEP_SEQUENCE = [
@@ -18,7 +21,6 @@ class Stepper:
         self.position = 0
         self.current_step = 0
         self.steps_per_second = 1000
-        self.acceleration = 10000
         
     def connect_to_pins(self, pin1, pin2, pin3, pin4):
         """Connect the stepper to the specified pins"""
@@ -34,10 +36,6 @@ class Stepper:
     def set_speed_in_steps_per_second(self, steps_per_second):
         """Set the stepper speed in steps per second"""
         self.steps_per_second = steps_per_second
-        
-    def set_acceleration_in_steps_per_second_per_second(self, acceleration):
-        """Set the stepper acceleration"""
-        self.acceleration = acceleration
         
     def step(self, direction):
         """Move one step in the specified direction (1 or -1)"""

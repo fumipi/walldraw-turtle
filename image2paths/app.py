@@ -13,7 +13,7 @@ DEFAULT_SIZE = 100  # Default drawing area size in mm
 def process_svg(svg_file, paper_width_mm, paper_height_mm, curve_division_length_mm, line_division_length_mm, output_filename="output_points.csv"):
     """
     SVGファイルを読み込み、ロボット用のCSVファイルに変換します。
-    座標系は左下原点、上方向にプラスのY軸、右方向にプラスのX軸に設定されています。
+    座標系は中央原点。
     """
     # 一時ファイルに保存
     with tempfile.NamedTemporaryFile(delete=False, suffix='.svg') as tmp_svg:
@@ -53,7 +53,14 @@ def process_svg(svg_file, paper_width_mm, paper_height_mm, curve_division_length
             scale_y = paper_height_mm / svg_height
         scale_factor = min(scale_x, scale_y)
 
-        # オフセット計算（中心原点）
+        # 正しく中央に配置するためのオフセット計算
+        if needs_rotation:
+            drawing_width = svg_height * scale_factor
+            drawing_height = svg_width * scale_factor
+        else:
+            drawing_width = svg_width * scale_factor
+            drawing_height = svg_height * scale_factor
+        # オフセット計算（中心原点、Yは下詰め）
         if needs_rotation:
             offset_x = -svg_min_x * scale_factor - (paper_width_mm / 2)
             offset_y = -svg_min_y * scale_factor - (paper_height_mm / 2)
@@ -165,7 +172,7 @@ st.markdown("## Drawing Area Settings")
 paper_width_mm = st.number_input("Drawing Area Width (mm)", min_value=10.0, max_value=5000.0, value=100.0)
 paper_height_mm = st.number_input("Drawing Area Height (mm)", min_value=10.0, max_value=5000.0, value=100.0)
 
-curve_division_length_mm = st.number_input("Curve Division Length (mm)", min_value=0.1, max_value=1000.0, value=1.0)
+curve_division_length_mm = st.number_input("Curve Division Length (mm)", min_value=0.1, max_value=1000.0, value=3.0)
 line_division_length_mm = st.number_input("Line Division Length (mm)", min_value=0.1, max_value=1000.0, value=100.0)
 
 # SVG変換とCSV生成

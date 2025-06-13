@@ -34,12 +34,7 @@ DEFAULT_XY_MM_PER_STEP = SPOOL_CIRC / STEPS_PER_TURN  # Min step resolution
 
 # Motor speeds
 STEPS_PER_SEC = 600
-ACCELERATION = 10000
 
 # Axes definitions
 X_AXIS = 0
-Y_AXIS = 1
-
-# Mathematical constants
-import math
-M_PI = math.pi 
+Y_AXIS = 1 
