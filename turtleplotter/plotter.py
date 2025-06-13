@@ -89,7 +89,7 @@ class WallPlotter:
         delta_m2 = target_steps_m2 - self.current_steps_M2
 
         # Determine directions
-        dir1 = 1 if delta_m1 * INVERT_M1_DIR >= 0 else -1
+        dir1 = 1 if delta_m1 * INVERT_M1_DIR >= 0 else -1  
         dir2 = 1 if delta_m2 * INVERT_M2_DIR >= 0 else -1
 
         # Absolute steps to move
@@ -128,72 +128,6 @@ class WallPlotter:
         self.current_position[Y_AXIS] = target_Y
 
         print(f"--- Move complete: M1={self.current_steps_M1}, M2={self.current_steps_M2}, Pos=({self.current_position[X_AXIS]}, {self.current_position[Y_AXIS]})")
-    
-    # def moveto(self, target_X, target_Y):
-    #     """Move to the specified target position"""
-    #     print(f"Moving from ({self.current_position[X_AXIS]}, {self.current_position[Y_AXIS]}) to ({target_X}, {target_Y})")
-        
-    #     target_steps_m1, target_steps_m2 = self.ik(target_X, target_Y)
-        
-    #     print(f"Current steps - M1: {self.current_steps_M1}, M2: {self.current_steps_M2}")
-    #     print(f"Target steps - M1: {target_steps_m1}, M2: {target_steps_m2}")
-        
-    #     steps_diff_m1 = target_steps_m1 - self.current_steps_M1
-    #     steps_diff_m2 = target_steps_m2 - self.current_steps_M2
-        
-    #     print(f"Step differences - M1: {steps_diff_m1}, M2: {steps_diff_m2}")
-        
-    #     dir1 = -1 if steps_diff_m1 * INVERT_M1_DIR > 0 else 1
-    #     dir2 = -1 if steps_diff_m2 * INVERT_M2_DIR > 0 else 1
-    
-    #     print(f"Direction calculations - M1: {dir1}, M2: {dir2}")
-        
-    #     over = 0
-    #     m1_steps_taken = 0  # Debug counter for M1
-    #     m2_steps_taken = 0  # Debug counter for M2
-
-    #     dif_abs_steps_run_m1 = abs(target_steps_m1 - self.current_steps_M1)
-    #     dif_abs_steps_run_m2 = abs(target_steps_m2 - self.current_steps_M2)
-        
-    #     print(f"Absolute step differences - M1: {dif_abs_steps_run_m1}, M2: {dif_abs_steps_run_m2}")
-        
-    #     # Bresenham line algorithm for coordinated movement
-    #     if dif_abs_steps_run_m1 > dif_abs_steps_run_m2:
-    #         print(f"More steps on M1: {dif_abs_steps_run_m1} vs {dif_abs_steps_run_m2}")
-    #         for i in range(dif_abs_steps_run_m1):
-    #             self.m1.move_relative_in_steps(dir1)
-    #             m1_steps_taken += 1  # Debug counter
-    #             over += dif_abs_steps_run_m2
-    #             if over >= dif_abs_steps_run_m1:
-    #                 over -= dif_abs_steps_run_m1
-    #                 self.m2.move_relative_in_steps(dir2)
-    #                 m2_steps_taken += 1  # Debug counter
-    #             if i % 100 == 0:  # Print progress every 100 steps
-    #                 print(f"Progress: M1={m1_steps_taken}, M2={m2_steps_taken}, over={over}")
-    #     else:
-    #         print(f"More steps on M2: {dif_abs_steps_run_m2} vs {dif_abs_steps_run_m1}")
-    #         for i in range(dif_abs_steps_run_m2):
-    #             self.m2.move_relative_in_steps(dir2)
-    #             m2_steps_taken += 1  # Debug counter
-    #             over += dif_abs_steps_run_m1
-    #             if over >= dif_abs_steps_run_m2:
-    #                 over -= dif_abs_steps_run_m2
-    #                 self.m1.move_relative_in_steps(dir1)
-    #                 m1_steps_taken += 1  # Debug counter
-    #             if i % 100 == 0:  # Print progress every 100 steps
-    #                 print(f"Progress: M1={m1_steps_taken}, M2={m2_steps_taken}, over={over}")
-        
-    #     print(f"Final step counts - M1: {m1_steps_taken}, M2: {m2_steps_taken}")
-    #     print(f"Final over value: {over}")
-        
-    #     # Update position trackers
-    #     self.current_steps_M1 = target_steps_m1
-    #     self.current_steps_M2 = target_steps_m2
-    #     self.current_position[X_AXIS] = target_X
-    #     self.current_position[Y_AXIS] = target_Y
-        
-    #     print(f"Move completed - now at ({self.current_position[X_AXIS]}, {self.current_position[Y_AXIS]})")
-    #     print(f"Updated steps - M1: {self.current_steps_M1}, M2: {self.current_steps_M2}")
     
     def read_csv_and_plot(self, filename="points.csv"):
         """Read coordinates from CSV file and control the plotter to draw them"""

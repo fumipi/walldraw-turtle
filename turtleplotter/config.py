@@ -25,8 +25,8 @@ PEN_UP_ANGLE = 110
 PEN_DOWN_ANGLE = 50
 
 # Motor configuration
-INVERT_M1_DIR = 1
-INVERT_M2_DIR = -1  
+INVERT_M1_DIR = 1  
+INVERT_M2_DIR = -1
 STEPS_PER_TURN = 2048  # 28BYJ-48 stepper motor (with gear reduction)
 SPOOL_DIAMETER = 28    # mm
 SPOOL_CIRC = SPOOL_DIAMETER * 3.1416  # Line spool circumference
