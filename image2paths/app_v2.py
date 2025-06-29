@@ -9,7 +9,6 @@ from skimage.morphology import skeletonize
 import matplotlib.pyplot as plt
 from svgpathtools import svg2paths2, Path, Line, CubicBezier, QuadraticBezier
 import xml.etree.ElementTree as ET
-import streamlit.components.v1 as components
 
 # Constants
 DEFAULT_SIZE = 100  # Default drawing area size in mm
@@ -145,7 +144,11 @@ else:
         if method == "Edge Detection":
             t1 = st.sidebar.slider("Canny Threshold1", 0, 255, 100)
             t2 = st.sidebar.slider("Canny Threshold2", 0, 255, 200)
-            processed = cv2.Canny(img, t1, t2)
+                # <-- new blur step
+            blur_ksize = st.sidebar.slider("Gaussian Blur Kernel (odd)", 1, 31, 3, step=2)
+            blurred = cv2.GaussianBlur(img, (blur_ksize, blur_ksize), 0)
+            processed = cv2.Canny(blurred, t1, t2)
+
         else:
             thr = st.sidebar.slider("Binarization Threshold", 0, 255, 225)
             _, bin_img = cv2.threshold(img, thr, 255, cv2.THRESH_BINARY_INV)
