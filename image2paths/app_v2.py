@@ -61,7 +61,7 @@ def preview_paths(coordinates, paper_w, paper_h):
 
 
 # --- SVG processing ---
-def process_svg(svg_file, paper_w, paper_h, curve_div, line_div):
+def process_svg(svg_file, paper_w, paper_h):
     # save to temp
     with tempfile.NamedTemporaryFile(delete=False, suffix='.svg') as tmp:
         tmp.write(svg_file.read())
@@ -90,8 +90,8 @@ def process_svg(svg_file, paper_w, paper_h, curve_div, line_div):
                 for seg in sub:
                     length = seg.length(error=1e-5)
                     if length<=0: continue
-                    div = line_div if isinstance(seg, Line) else curve_div
-                    n = max(int(math.ceil((length*scale)/div)),1)
+                    # Use a reasonable number of points for curves, fewer for lines
+                    n = max(int(math.ceil((length*scale)/2.0)), 2) if not isinstance(seg, Line) else 2
                     for i in range(n+1):
                         p = seg.point(i/n)
                         if needs_rot:
@@ -115,15 +115,13 @@ paper_w = st.sidebar.number_input("Width",10.0,5000.0,100.0)
 paper_h = st.sidebar.number_input("Height",10.0,5000.0,100.0)
 
 # common simplification control
-epsilon = st.sidebar.slider("Simplify tolerance (mm)",0.0,10.0,1.0,0.1)
+epsilon = st.sidebar.slider("Simplify tolerance (mm)",0.0,10.0,0.3,0.1)
 
 if method=="Upload SVG":
     st.header("SVG to CSV")
     svg_file = st.file_uploader("Upload SVG",type=["svg"])
-    curve_div = st.sidebar.number_input("Curve div (mm)",0.1,1000.0,3.0)
-    line_div = st.sidebar.number_input("Line div (mm)",0.1,1000.0,100.0)
     if svg_file and st.button("Run"):
-        raw = process_svg(svg_file,paper_w,paper_h,curve_div,line_div)
+        raw = process_svg(svg_file,paper_w,paper_h)
         simp = [rdp(sp,epsilon) for sp in raw]
         ordered = sort_coordinates(simp)
         st.subheader("Preview of Simplified & Sorted Paths")
@@ -139,9 +137,12 @@ else:
         arr = np.frombuffer(img_file.read(),np.uint8)
         gray = cv2.imdecode(arr,cv2.IMREAD_GRAYSCALE)
         if method=="Edge Detection":
-            k = st.sidebar.slider("Blur ksize (odd)",1,31,3,2)
-            t1 = st.sidebar.slider("Canny Th1",0,255,100)
-            t2 = st.sidebar.slider("Canny Th2",0,255,200)
+            k = st.sidebar.slider("Blur strength",1,31,3,2,
+                                help="Higher values reduce noise but may lose fine details")
+            t1 = st.sidebar.slider("Weak edge threshold",0,255,100,
+                                 help="Lower values detect more edges but may include noise")
+            t2 = st.sidebar.slider("Strong edge threshold",0,255,200,
+                                 help="Higher values only detect very clear edges")
             proc = cv2.Canny(cv2.GaussianBlur(gray,(k,k),0),t1,t2)
         else:
             thr = st.sidebar.slider("Binarize Th",0,255,128)
@@ -153,7 +154,9 @@ else:
             st.image(gray,width=300)
         with col2:
             st.subheader("Mask")
-            st.image(proc,width=300)
+            # Display inverted mask for better visibility (processing still uses original)
+            display_mask = cv2.bitwise_not(proc)
+            st.image(display_mask,width=300)
         if st.button("Generate CSV"):
             cnts,_ = cv2.findContours(proc,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
             h,w=proc.shape;scale=min(paper_w/w,paper_h/h)
