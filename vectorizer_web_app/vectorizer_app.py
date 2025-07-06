@@ -48,6 +48,102 @@ def sort_coordinates(subpaths):
     return sorted_list
 
 
+def remove_duplicate_paths(paths, endpoint_tolerance=3.0, shape_similarity_threshold=0.8):
+    """
+    Remove duplicate or very similar paths based on endpoint distance and shape similarity.
+    
+    Args:
+        paths: List of path coordinates
+        endpoint_tolerance: Maximum distance between endpoints to consider paths similar (mm)
+        shape_similarity_threshold: Threshold for shape similarity (0-1, higher = more similar)
+    
+    Returns:
+        List of unique paths
+    """
+    if len(paths) <= 1:
+        return paths
+    
+    def path_length(path):
+        """Calculate total length of a path."""
+        if len(path) < 2:
+            return 0
+        total = 0
+        for i in range(len(path) - 1):
+            total += math.hypot(path[i+1][0] - path[i][0], path[i+1][1] - path[i][1])
+        return total
+    
+    def endpoint_distance(path1, path2):
+        """Calculate minimum distance between endpoints of two paths."""
+        if len(path1) < 1 or len(path2) < 1:
+            return float('inf')
+        
+        start1, end1 = path1[0], path1[-1]
+        start2, end2 = path2[0], path2[-1]
+        
+        # Check all combinations of endpoints
+        distances = [
+            math.hypot(start1[0] - start2[0], start1[1] - start2[1]),  # start-start
+            math.hypot(start1[0] - end2[0], start1[1] - end2[1]),      # start-end
+            math.hypot(end1[0] - start2[0], end1[1] - start2[1]),      # end-start
+            math.hypot(end1[0] - end2[0], end1[1] - end2[1])           # end-end
+        ]
+        return min(distances)
+    
+    def shape_similarity(path1, path2):
+        """Calculate shape similarity between two paths using normalized length and direction."""
+        if len(path1) < 2 or len(path2) < 2:
+            return 0
+        
+        # Calculate path lengths
+        len1, len2 = path_length(path1), path_length(path2)
+        if len1 == 0 or len2 == 0:
+            return 0
+        
+        # Calculate overall direction vectors
+        dir1 = (path1[-1][0] - path1[0][0], path1[-1][1] - path1[0][1])
+        dir2 = (path2[-1][0] - path2[0][0], path2[-1][1] - path2[0][1])
+        
+        # Normalize direction vectors
+        mag1 = math.hypot(dir1[0], dir1[1])
+        mag2 = math.hypot(dir2[0], dir2[1])
+        
+        if mag1 == 0 or mag2 == 0:
+            return 0
+        
+        dir1_norm = (dir1[0] / mag1, dir1[1] / mag1)
+        dir2_norm = (dir2[0] / mag2, dir2[1] / mag2)
+        
+        # Calculate dot product for direction similarity
+        dot_product = dir1_norm[0] * dir2_norm[0] + dir1_norm[1] * dir2_norm[1]
+        direction_similarity = max(0, dot_product)  # Only positive similarity
+        
+        # Length similarity (shorter path should be at least 70% of longer path)
+        length_ratio = min(len1, len2) / max(len1, len2)
+        length_similarity = length_ratio if length_ratio > 0.7 else 0
+        
+        # Combined similarity (weighted average)
+        return 0.6 * direction_similarity + 0.4 * length_similarity
+    
+    unique_paths = []
+    
+    for path in paths:
+        is_duplicate = False
+        
+        for existing_path in unique_paths:
+            # Check endpoint distance first (faster)
+            if endpoint_distance(path, existing_path) <= endpoint_tolerance:
+                # If endpoints are close, check shape similarity
+                similarity = shape_similarity(path, existing_path)
+                if similarity >= shape_similarity_threshold:
+                    is_duplicate = True
+                    break
+        
+        if not is_duplicate:
+            unique_paths.append(path)
+    
+    return unique_paths
+
+
 def preview_paths(coordinates, paper_w, paper_h):
     fig, ax = plt.subplots(figsize=(4,4))
     ax.set_xlim(-paper_w/2, paper_w/2)
@@ -108,14 +204,22 @@ def process_svg(svg_file, paper_w, paper_h):
 
 # --- Streamlit UI ---
 st.set_page_config(page_title="Vectorizer", layout="wide")
-st.title("Pen Plotter Vectorizer & CSV Converter")
-method = st.sidebar.selectbox("Input Method:", ["Upload SVG","Edge Detection","Centerline Extraction"])
+st.title("Vectorizer & CSV Converter for Turtle Plotter")
+method = st.sidebar.selectbox("Choose Input Method:", ["Upload SVG","Edge Detection","Centerline Extraction"])
 st.sidebar.markdown("### Paper size (mm)")
 paper_w = st.sidebar.number_input("Width",10.0,5000.0,100.0)
 paper_h = st.sidebar.number_input("Height",10.0,5000.0,100.0)
 
 # common simplification control
 epsilon = st.sidebar.slider("Simplify tolerance (mm)",0.0,10.0,0.3,0.1)
+
+# duplicate removal controls (for image processing methods)
+if method in ["Edge Detection", "Centerline Extraction"]:
+    st.sidebar.markdown("### Duplicate Removal")
+    endpoint_tolerance = st.sidebar.slider("Endpoint tolerance (mm)", 0.5, 10.0, 3.0, 0.5,
+                                         help="Maximum distance between endpoints to consider paths similar")
+    shape_similarity_threshold = st.sidebar.slider("Shape similarity threshold", 0.5, 1.0, 0.8, 0.05,
+                                                 help="Threshold for shape similarity (higher = more strict)")
 
 if method=="Upload SVG":
     st.header("SVG to CSV")
@@ -165,8 +269,18 @@ else:
                 pts=c.squeeze()
                 if pts.ndim!=2: continue
                 paths.append([(round(p[0]*scale-(w*scale)/2,1),round((h-p[1])*scale-(h*scale)/2,1)) for p in pts])
-            simp=[rdp(sp,epsilon) for sp in paths]
+            
+            # Show original path count
+            st.info(f"Found {len(paths)} original paths")
+            
+            # Remove duplicates
+            unique_paths = remove_duplicate_paths(paths, endpoint_tolerance, shape_similarity_threshold)
+            st.info(f"After duplicate removal: {len(unique_paths)} unique paths")
+            
+            # Simplify paths
+            simp=[rdp(sp,epsilon) for sp in unique_paths]
             ordered=sort_coordinates(simp)
+            
             st.subheader("Preview of Simplified & Sorted Paths")
             fig2=preview_paths(ordered,paper_w,paper_h)
             st.pyplot(fig2,use_container_width=True)
