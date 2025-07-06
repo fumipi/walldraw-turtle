@@ -77,9 +77,9 @@ class WallPlotter:
         """Jog motor M2 by the specified number of steps"""
         self.m2.move_relative_in_steps(steps * INVERT_M2_DIR)
     
-    def moveto(self, target_X, target_Y):
+    def goto(self, target_X, target_Y):
         """Move to the specified target position with coordinated stepping."""
-        print(f"\n--- Coordinated moveto: ({self.current_position[X_AXIS]}, {self.current_position[Y_AXIS]}) -> ({target_X}, {target_Y})")
+        print(f"\n--- Coordinated goto: ({self.current_position[X_AXIS]}, {self.current_position[Y_AXIS]}) -> ({target_X}, {target_Y})")
 
         # Convert XY to motor steps
         target_steps_m1, target_steps_m2 = self.ik(target_X, target_Y)
@@ -149,19 +149,19 @@ class WallPlotter:
                             if first_point:
                                 self.pen_up()
                                 time.sleep(0.5)
-                                self.moveto(x, y)
+                                self.goto(x, y)
                                 self.pen_down()
                                 time.sleep(0.5)
                                 first_point = False
                             else:
-                                self.moveto(x, y)
+                                self.goto(x, y)
                         except ValueError as e:
                             print(f"Error parsing point {point_str}: {e}")
                     self.pen_up()
                     time.sleep(0.5)
             print("Drawing complete")
             print("Returning to home position (0,0)")
-            self.moveto(0, 0)
+            self.goto(0, 0)
             print("Returned to home position")
             return True
         except Exception as e:

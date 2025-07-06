@@ -43,13 +43,13 @@ def main():
         # Move to first point with pen up
         plotter.pen_up()
         time.sleep(0.5)
-        plotter.moveto(test_square[0][0], test_square[0][1])
+        plotter.goto(test_square[0][0], test_square[0][1])
         
         # Draw the pattern
         plotter.pen_down()
         time.sleep(0.5)
         for x, y in test_square[1:]:
-            plotter.moveto(x, y)
+            plotter.goto(x, y)
         
         success = True
     
