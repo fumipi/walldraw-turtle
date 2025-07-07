@@ -9,16 +9,12 @@ import matplotlib.pyplot as plt
 from svgpathtools import svg2paths2, Line
 import xml.etree.ElementTree as ET
 
-# --- Utility functions ---
-
+# --- Path simplification functions ---
 def rdp(points, epsilon):
-    """Ramer-Douglas-Peucker path simplification."""
     if len(points) < 3:
         return points
-    # find farthest point
     first, last = points[0], points[-1]
     def perp_dist(pt, a, b):
-        # distance from pt to line a-b
         num = abs((b[1] - a[1]) * pt[0] - (b[0] - a[0]) * pt[1] + b[0]*a[1] - b[1]*a[0])
         den = math.hypot(b[1] - a[1], b[0] - a[0])
         return num / den if den != 0 else 0
@@ -33,6 +29,9 @@ def rdp(points, epsilon):
         return left[:-1] + right
     else:
         return [first, last]
+
+
+
 
 
 def sort_coordinates(subpaths):
@@ -59,10 +58,8 @@ def preview_paths(coordinates, paper_w, paper_h):
         ax.plot(xs, ys, linewidth=0.7, color='black')
     return fig
 
-
-# --- SVG processing ---
+# --- SVG to CSV processing ---
 def process_svg(svg_file, paper_w, paper_h):
-    # save to temp
     with tempfile.NamedTemporaryFile(delete=False, suffix='.svg') as tmp:
         tmp.write(svg_file.read())
         tmp_path = tmp.name
@@ -77,6 +74,7 @@ def process_svg(svg_file, paper_w, paper_h):
             svg_w = float(root.get('width', paper_w))
             svg_h = float(root.get('height', paper_h))
         paths, _, _ = svg2paths2(tmp_path)
+        # scaling and sampling same as before
         ratio_svg = svg_w/svg_h
         ratio_p = paper_w/paper_h
         needs_rot = (ratio_svg<1 and ratio_p>1) or (ratio_svg>1 and ratio_p<1)
@@ -89,8 +87,7 @@ def process_svg(svg_file, paper_w, paper_h):
                 pts = []
                 for seg in sub:
                     length = seg.length(error=1e-5)
-                    if length<=0: continue
-                    # Use a reasonable number of points for curves, fewer for lines
+                    if length <= 0: continue
                     n = max(int(math.ceil((length*scale)/2.0)), 2) if not isinstance(seg, Line) else 2
                     for i in range(n+1):
                         p = seg.point(i/n)
@@ -100,78 +97,161 @@ def process_svg(svg_file, paper_w, paper_h):
                         else:
                             x = p.real*scale + off_x
                             y = (svg_h - p.imag)*scale + off_y
-                        pts.append((round(x,1),round(y,1)))
-                if pts: subpaths.append(pts)
+                        pts.append((round(x,1), round(y,1)))
+                if pts:
+                    subpaths.append(pts)
         return subpaths
     finally:
         os.remove(tmp_path)
 
 # --- Streamlit UI ---
-st.set_page_config(page_title="Vectorizer", layout="wide")
+st.set_page_config(page_title="Vectorizer & CSV Converter", layout="wide")
 st.title("Vectorizer & CSV Converter for Turtle Plotter")
-method = st.sidebar.selectbox("Choose Input Method:", ["Upload SVG","Edge Detection","Centerline Extraction"])
+method = st.sidebar.selectbox("Choose Input Method:", ["Centerline Extraction", "Edge Detection", "SVG Upload"] )
 st.sidebar.markdown("### Paper size (mm)")
-paper_w = st.sidebar.number_input("Width",10.0,5000.0,100.0)
-paper_h = st.sidebar.number_input("Height",10.0,5000.0,100.0)
+paper_w = st.sidebar.number_input("Width", 10.0, 5000.0, 100.0)
+paper_h = st.sidebar.number_input("Height", 10.0, 5000.0, 100.0)
 
-# common simplification control
-epsilon = st.sidebar.slider("Simplify tolerance (mm)",0.0,10.0,0.3,0.1)
-
-if method=="Upload SVG":
+if method == "SVG Upload":
     st.header("SVG to CSV")
-    svg_file = st.file_uploader("Upload SVG",type=["svg"])
-    if svg_file and st.button("Run"):
-        raw = process_svg(svg_file,paper_w,paper_h)
-        simp = [rdp(sp,epsilon) for sp in raw]
+    st.sidebar.markdown("### Path Simplification")
+    epsilon = st.sidebar.slider("Simplify tolerance (mm)", 0.0, 10.0, 0.2, 0.1)
+    svg_file = st.file_uploader("Upload SVG", type=["svg"] )
+    if svg_file and st.button("Generate CSV"):
+        raw = process_svg(svg_file, paper_w, paper_h)
+        simp = [rdp(sp, epsilon) for sp in raw]
         ordered = sort_coordinates(simp)
         st.subheader("Preview of Simplified & Sorted Paths")
-        fig = preview_paths(ordered,paper_w,paper_h)
-        st.pyplot(fig,use_container_width=True)
+        st.pyplot(preview_paths(ordered, paper_w, paper_h), use_container_width=True)
         csv = "\n".join([";".join(f"{x},{y}" for x,y in sp) for sp in ordered])
-        st.download_button("Download CSV",data=csv,file_name="points.csv",mime="text/csv")
+        st.download_button("Download CSV", data=csv, file_name="points.csv", mime="text/csv")
 
-else:
-    st.header(f"{method}")
-    img_file = st.file_uploader("Upload Image",type=["png","jpg","jpeg"])
+elif method == "Edge Detection":
+    st.header("Edge Detection to CSV")
+    # Image upload + parameters
+    img_file = st.file_uploader("Upload Image", type=["png","jpg","jpeg"] )
     if img_file:
-        arr = np.frombuffer(img_file.read(),np.uint8)
-        gray = cv2.imdecode(arr,cv2.IMREAD_GRAYSCALE)
-        if method=="Edge Detection":
-            k = st.sidebar.slider("Blur strength",1,31,3,2,
-                                help="Higher values reduce noise but may lose fine details")
-            t1 = st.sidebar.slider("Weak edge threshold",0,255,100,
-                                 help="Lower values detect more edges but may include noise")
-            t2 = st.sidebar.slider("Strong edge threshold",0,255,200,
-                                 help="Higher values only detect very clear edges")
-            proc = cv2.Canny(cv2.GaussianBlur(gray,(k,k),0),t1,t2)
-        else:
-            thr = st.sidebar.slider("Binarize Th",0,255,128)
-            _,b = cv2.threshold(gray,thr,255,cv2.THRESH_BINARY_INV)
-            proc = (skeletonize(b/255).astype(np.uint8)*255)
-        col1,col2 = st.columns(2)
+        arr = np.frombuffer(img_file.read(), np.uint8)
+        gray = cv2.imdecode(arr, cv2.IMREAD_GRAYSCALE)
+        k = st.sidebar.slider("Blur strength", 1, 31, 3, 2)
+        t1 = st.sidebar.slider("Weak edge threshold", 0, 255, 100)
+        t2 = st.sidebar.slider("Strong edge threshold", 0, 255, 200)
+        proc = cv2.Canny(cv2.GaussianBlur(gray, (k,k), 0), t1, t2)
+        st.sidebar.markdown("### Path Simplification")
+        epsilon = st.sidebar.slider("Simplify tolerance (mm)", 0.0, 10.0, 0.2, 0.1)
+
+        col1, col2 = st.columns(2)
         with col1:
             st.subheader("Original")
-            st.image(gray,width=300)
+            st.image(gray, width=300)
         with col2:
-            st.subheader("Mask")
-            # Display inverted mask for better visibility (processing still uses original)
-            display_mask = cv2.bitwise_not(proc)
-            st.image(display_mask,width=300)
+            st.subheader("Edges")
+            st.image(cv2.bitwise_not(proc), width=300)
+
         if st.button("Generate CSV"):
-            cnts,_ = cv2.findContours(proc,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
-            h,w=proc.shape;scale=min(paper_w/w,paper_h/h)
-            paths=[]
+            cnts, _ = cv2.findContours(proc, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+            h, w = proc.shape
+            scale = min(paper_w/w, paper_h/h)
+            paths = []
             for c in cnts:
-                pts=c.squeeze()
-                if pts.ndim!=2: continue
-                paths.append([(round(p[0]*scale-(w*scale)/2,1),round((h-p[1])*scale-(h*scale)/2,1)) for p in pts])
-            simp=[rdp(sp,epsilon) for sp in paths]
-            ordered=sort_coordinates(simp)
+                pts = c.squeeze()
+                if pts.ndim != 2: continue
+                paths.append([
+                    (round(p[0]*scale - (w*scale)/2,1), round((h-p[1])*scale - (h*scale)/2,1))
+                    for p in pts
+                ])
+            simp = [rdp(sp, epsilon) for sp in paths]
+            ordered = sort_coordinates(simp)
+
             st.subheader("Preview of Simplified & Sorted Paths")
-            fig2=preview_paths(ordered,paper_w,paper_h)
-            st.pyplot(fig2,use_container_width=True)
-            csv2="\n".join([";".join(f"{x},{y}" for x,y in sp) for sp in ordered])
-            st.download_button("Download CSV",data=csv2,file_name="points.csv",mime="text/csv")
+            st.pyplot(preview_paths(ordered, paper_w, paper_h), use_container_width=True)
+            csv = "\n".join([";".join(f"{x},{y}" for x,y in sp) for sp in ordered])
+            st.download_button("Download CSV", data=csv, file_name="points.csv", mime="text/csv")
+
+elif method == "Centerline Extraction":
+    st.header("Centerline Extraction to CSV")
+    img_file = st.file_uploader("Upload Image", type=["png","jpg","jpeg"] )
+    if img_file:
+        arr = np.frombuffer(img_file.read(), np.uint8)
+        gray = cv2.imdecode(arr, cv2.IMREAD_GRAYSCALE)
+        thr = st.sidebar.slider("Binarize Th", 0, 255, 210)
+        _, b = cv2.threshold(gray, thr, 255, cv2.THRESH_BINARY_INV)
+        proc = (skeletonize(b/255).astype(np.uint8) * 255)
+
+        st.sidebar.markdown("### Path Simplification")
+        epsilon = st.sidebar.slider("Simplify tolerance (mm)", 0.0, 10.0, 0.2, 0.1)
+        gap_threshold = st.sidebar.slider("Gap threshold (px)", 0.5, 10.0, 2.0, 0.5)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("Original")
+            st.image(gray, width=300)
+        with col2:
+            st.subheader("Skeleton")
+            st.image(cv2.bitwise_not(proc), width=300)
+
+        if st.button("Generate CSV"):
+            # pixel-based skeleton tracing
+            skeleton = proc > 0
+            h, w = skeleton.shape
+            visited = np.zeros_like(skeleton, dtype=bool)
+            neighbor_offsets = [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)]
+
+            def get_neighbors(y, x):
+                nbrs = []
+                for dy, dx in neighbor_offsets:
+                    ny, nx = y+dy, x+dx
+                    if 0 <= ny < h and 0 <= nx < w and skeleton[ny,nx] and not visited[ny,nx]:
+                        nbrs.append((ny, nx))
+                return nbrs
+
+            paths = []
+            for yy in range(h):
+                for xx in range(w):
+                    if skeleton[yy,xx] and not visited[yy,xx]:
+                        stack = [(yy,xx)]
+                        visited[yy,xx] = True
+                        path = []
+                        while stack:
+                            cy, cx = stack.pop()
+                            path.append((cx, cy))
+                            for ny, nx in get_neighbors(cy, cx):
+                                visited[ny, nx] = True
+                                stack.append((ny, nx))
+                        if len(path) > 0:
+                            paths.append(path)
+
+            # split by gap and convert to mm
+            all_subs = []
+            for p in paths:
+                cur = [p[0]]
+                for p0, p1 in zip(p, p[1:]):
+                    if math.hypot(p1[0]-p0[0], p1[1]-p0[1]) > gap_threshold:
+                        if len(cur) > 1:
+                            all_subs.append(cur)
+                        cur = [p1]
+                    else:
+                        cur.append(p1)
+                if len(cur) > 1:
+                    all_subs.append(cur)
+
+            scale = min(paper_w / w, paper_h / h)
+            coords_mm = [
+                [
+                    (round(x*scale - (w*scale)/2, 1), round((h-y)*scale - (h*scale)/2, 1))
+                    for x, y in sub
+                ]
+                for sub in all_subs
+            ]
+
+            # simplification
+            simp = [rdp(sp, epsilon) for sp in coords_mm]
+            ordered = sort_coordinates(simp)
+
+            st.subheader("Preview of Simplified & Sorted Paths")
+            st.pyplot(preview_paths(ordered, paper_w, paper_h), use_container_width=True)
+            csv = "\n".join([";".join(f"{x},{y}" for x,y in sp) for sp in ordered])
+            st.download_button("Download CSV", data=csv, file_name="points.csv", mime="text/csv")
 
 st.markdown("---")
 st.markdown("*Made with ❤️ by Craft Robot Workshop*")
