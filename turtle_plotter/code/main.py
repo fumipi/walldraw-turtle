@@ -12,8 +12,9 @@ def main():
     print("Wall Drawing Plotter - CSV File Reader")
     print("Starting drawing process...")
     
-    # Test square pattern (100mm x 100mm) - useful for calibration
-    test_square = [
+    # Test drawing pattern - you can modify these coordinates freely
+    # Default: 100mm x 100mm square pattern (useful for calibration)
+    test_drawing = [
         (50.0, 0.0), (50.0, 50.0), (0.0, 50.0), (-50.0, 50.0),
         (-50.0, 0.0), (-50.0, -50.0), (0.0, -50.0), (50.0, -50.0),
         (50.0, 0.0),(0.0,0.0)
@@ -38,17 +39,17 @@ def main():
         # Process the CSV file
         success = plotter.read_csv_and_plot("points.csv")
     else:
-        # Draw the test square
-        print("Drawing test square...")
+        # Draw the test drawing
+        print("Drawing test pattern...")
         # Move to first point with pen up
         plotter.pen_up()
         time.sleep(0.5)
-        plotter.goto(test_square[0][0], test_square[0][1])
+        plotter.goto(test_drawing[0][0], test_drawing[0][1])
         
         # Draw the pattern
         plotter.pen_down()
         time.sleep(0.5)
-        for x, y in test_square[1:]:
+        for x, y in test_drawing[1:]:
             plotter.goto(x, y)
         
         success = True

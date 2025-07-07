@@ -1,6 +1,6 @@
-# Walldraw - Pen Plotter Project
+# Walldraw Turtle - Vertical Plotter Project
 
-A complete pen plotter system with hardware and software components for creating beautiful drawings.
+A complete pen plotter system with hardware and software components for creating drawings.
 
 ## Project Structure
 
@@ -28,8 +28,8 @@ A Streamlit web application for converting images and SVG files to plotter coord
 - MicroPython implementation with turtle graphics like library functions (currently goto() only)
 - **Simple operation**: Just run `main.py` in Thonny IDE
 - **Automatic behavior**: 
-  - If `points.csv` is present → draws the specified path
-  - If no CSV file → draws a 100mm × 100mm test square
+  - If `points.csv` is present → draws the specified path from CSV
+  - If no CSV file → draws coordinates from the `test_drawing` Python list in `main.py` (default: 100mm × 100mm square - you can modify these coordinates freely)
 
 ### Vectorizer web app
 - Web-based vectorizer with real-time preview
