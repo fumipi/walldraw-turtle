@@ -57,7 +57,7 @@ A Streamlit web application for converting images and SVG files to plotter coord
 3. **Download the CSV** and upload to the Pico as `points.csv`
 
 ## To Do
-- Update more turtle functions
+- Implement more turtle functions
 
 ## License
 
@@ -71,10 +71,6 @@ Under the following terms:
 - **Attribution** — You must give appropriate credit, provide a link to the license, and indicate if changes were made
 
 For more details, see: https://creativecommons.org/licenses/by/4.0/
-
----
-
-*Made with ❤️ by Craft Robot Workshop*
 
 
 
