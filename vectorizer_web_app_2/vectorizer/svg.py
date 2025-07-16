@@ -1,5 +1,4 @@
 import xml.etree.ElementTree as ET
-from IPython.display import SVG, display
 import numpy as np
 
 def polyline_to_svg_path(points: list[tuple[float,float]]) -> str:
