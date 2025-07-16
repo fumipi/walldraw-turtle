@@ -2,6 +2,14 @@
 
 A Streamlit web application for converting images and SVG files to CSV coordinates for pen plotters.
 
+## 🌐 Live Demo
+
+**The app is now hosted on Streamlit Cloud!**
+
+🎯 **Visit the live app**: https://vectorizer.streamlit.app/
+
+No installation required - just open the link and start converting your images and SVGs to plotter coordinates!
+
 ## Features
 
 - **SVG to CSV**: Convert vector graphics to plotter coordinates
@@ -11,7 +19,14 @@ A Streamlit web application for converting images and SVG files to CSV coordinat
 - **Path Optimization**: Sort paths to minimize pen travel distance
 - **Real-time Preview**: Visualize the converted paths before downloading
 
-## Installation
+## 🚀 Quick Start
+
+### Option 1: Use the Live App (Recommended)
+Simply visit https://vectorizer.streamlit.app/ and start using the app immediately!
+
+### Option 2: Run Locally
+
+If you prefer to run the app locally:
 
 1. **Clone the repository** (if you haven't already):
    ```bash
@@ -24,28 +39,26 @@ A Streamlit web application for converting images and SVG files to CSV coordinat
    pip install -r requirements.txt
    ```
 
-## Usage
-
-1. **Start the Streamlit app**:
+3. **Start the Streamlit app**:
    ```bash
    streamlit run vectorizer_app.py
    ```
 
-2. **Open your browser** and navigate to the URL shown in the terminal (usually `http://localhost:8501`)
+4. **Open your browser** and navigate to the URL shown in the terminal (usually `http://localhost:8501`)
 
-3. **Choose your input method**:
+5. **Choose your input method**:
    - **Upload SVG**: For vector graphics
    - **Edge Detection**: For extracting edges from photos/images
    - **Centerline Extraction**: For creating line art from binary images
 
-4. **Configure settings**:
+6. **Configure settings**:
    - Set paper dimensions (width and height in mm)
    - Adjust simplification tolerance
    - Fine-tune detection parameters (for image processing)
 
-5. **Upload your file** and click "Run" or "Generate CSV"
+7. **Upload your file** and click "Generate CSV"
 
-6. **Download the CSV file** and use it with your pen plotter
+8. **Download the CSV file** and use it with your pen plotter
 
 ## Input Methods
 
@@ -95,7 +108,7 @@ Where:
 ## Dependencies
 
 - `streamlit`: Web framework
-- `opencv-python`: Image processing
+- `opencv-python-headless`: Image processing (headless version for cloud deployment)
 - `scikit-image`: Morphological operations
 - `svgpathtools`: SVG parsing
 - `matplotlib`: Preview generation

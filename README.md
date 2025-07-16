@@ -1,15 +1,16 @@
-# Walldraw Turtle - Vertical Plotter Project
+# Simple Pico and MicroPython Vertical Plotter
 
-A complete pen plotter system with hardware and software components for creating drawings.
+A minimal vertical plotter built with Raspberry Pi Pico and MicroPython that draws pictures from coordinates provided in CSV format or Python lists.
 
 ## Project Structure
 
 ### 🐢 Turtle Plotter (`turtle_plotter/`)
-The hardware and firmware components:
-- **MicroPython code** for Raspberry Pi Pico
-- **3D printed parts** (STL files)
-- **Circuit schematics** and breadboard layouts
+Hardware and firmware components for Raspberry Pi Pico:
+- **MicroPython code** with turtle graphics functions
+- **3D printed parts** (STL files) and circuit schematics
+- **Hardware**: 28BYJ-48 stepper motors, SG90 servo, USB power
 - **Sample CSV files** for testing
+- Based on [Make a Raspberry Pi Pico pen plotter]( https://www.raspberrypi.com/news/make-a-raspberry-pi-pico-pen-plotter/) 
 
 ### 🌐 Vectorizer Web App (`vectorizer_web_app/`)
 A Streamlit web application for converting images and SVG files to plotter coordinates:
@@ -17,25 +18,9 @@ A Streamlit web application for converting images and SVG files to plotter coord
 - **Image edge detection**
 - **Centerline extraction**
 - **Path optimization and simplification**
+- **🌐 Live Demo**: https://vectorizer.streamlit.app/
 
-## Features
 
-### Turtle plotter
-- Based on Hackaday "Minimal pico vertical plotter" project but further minimized : https://hackaday.io/project/193338-minimal-pico-vertical-plotter
-- Uses 28BYJ-48 stepper motors to control drawing gondola up and down
-- Uses SG90 servo to control pen up/down
-- Power supply from PC USB port
-- MicroPython implementation with turtle graphics like library functions (currently goto() only)
-- **Simple operation**: Just run `main.py` in Thonny IDE
-- **Automatic behavior**: 
-  - If `points.csv` is present → draws the specified path from CSV
-  - If no CSV file → draws coordinates from the `test_drawing` Python list in `main.py` (default: 100mm × 100mm square - you can modify these coordinates freely)
-
-### Vectorizer web app
-- Web-based vectorizer with real-time preview
-- Multiple input methods (SVG, edge detection, centerline extraction)
-- Path optimization for efficient plotting
-- Coordinate system centered on paper
 
 ## Quick Start
 
@@ -46,7 +31,15 @@ A Streamlit web application for converting images and SVG files to plotter coord
 4. **Open `turtle_plotter/code/main.py`** in Thonny and run it
 5. **Upload `points.csv`** to the Pico (optional - will draw test square if not present)
 
+**Operation Modes:**
+- **CSV Mode**: If `points.csv` is present → draws the specified path from CSV
+- **Test Mode**: If no CSV file → draws coordinates from the `test_drawing` Python list in `main.py` (default: 100mm × 100mm square - you can modify these coordinates freely)
+
 ### Vectorizer Web App Setup
+**Option 1: Use the Live App (Recommended)**
+- Visit https://vectorizer.streamlit.app/ to use the app immediately
+
+**Option 2: Run Locally**
 1. **Install the web app**: 
    ```bash
    cd vectorizer_web_app
