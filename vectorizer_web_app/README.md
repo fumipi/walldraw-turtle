@@ -22,7 +22,7 @@ No installation required - just open the link and start converting your images a
 ## 🚀 Quick Start
 
 ### Option 1: Use the Live App (Recommended)
-Simply visit https://vectorizer.streamlit.app/ and start using the app immediately!
+Simply visit https://vectorizer3.streamlit.app/ and start using the app immediately!
 
 ### Option 2: Run Locally
 
