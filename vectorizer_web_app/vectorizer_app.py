@@ -115,7 +115,7 @@ paper_h = st.sidebar.number_input("Height", 10.0, 5000.0, 100.0)
 if method == "SVG Upload":
     st.header("SVG to CSV")
     st.sidebar.markdown("### Path Simplification")
-    epsilon = st.sidebar.slider("Simplify tolerance (mm)", 0.0, 10.0, 0.2, 0.1)
+    epsilon = st.sidebar.slider("Simplify tolerance (mm)", 0.0, 30.0, 0.2, 0.1)
     svg_file = st.file_uploader("Upload SVG", type=["svg"] )
     if svg_file and st.button("Generate CSV"):
         raw = process_svg(svg_file, paper_w, paper_h)
