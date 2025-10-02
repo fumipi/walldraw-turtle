@@ -9,7 +9,7 @@ M2_PIN1 = 0
 M2_PIN2 = 1
 M2_PIN3 = 3
 M2_PIN4 = 4
-SERVO_PIN = 14
+SERVO_PIN = 18
 
 # Drawing area configuration
 START_X = 0
