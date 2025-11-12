@@ -1,70 +1,49 @@
-# Simple Pico and MicroPython Vertical Plotter
+[English version → README_en.md](./README_en.md)
+# 🐢かめプロッター
 
-A minimal vertical plotter built with Raspberry Pi Pico and MicroPython that draws pictures from coordinates provided in CSV format or Python lists.
+Raspberry Pi Pico と MicroPython で作る最小構成の亀の形をした垂直型ペンプロッターです。  
+CSVファイルに基づいて線画を描きます。
 
-## Project Structure
+---
 
-### 🐢 Turtle Plotter (`turtle_plotter/`)
-Hardware and firmware components for Raspberry Pi Pico:
-- **MicroPython code** with turtle graphics functions
-- **3D printed parts** (STL files) and circuit schematics
-- **Hardware**: 28BYJ-48 stepper motors, SG90 servo, USB power
-- **Sample CSV files** for testing
-- Based on [Make a Raspberry Pi Pico pen plotter]( https://www.raspberrypi.com/news/make-a-raspberry-pi-pico-pen-plotter/) 
+## プロジェクト概要
 
-### 🌐 Vectorizer Web App (`vectorizer_web_app/`)
-A Streamlit web application for converting images and SVG files to plotter coordinates:
-- **SVG to CSV conversion**
-- **Image edge detection**
-- **Centerline extraction**
-- **Path optimization and simplification**
-- **🌐 Live Demo**: https://vectorizer.streamlit.app/
+### **ハードウェア & ファームウェア ** 
+- タートルグラフィックス風の MicroPython 制御コード  
+- **Raspberry Pi Pico**, **28BYJ-48 ステッピングモータ ×2**, **SG90 サーボモータ ×1** を使用  
+- 電源は USB から給電 
+- **3Dプリント部品（STL）**、**回路図**、**サンプル CSV**   
 
 
+## 使い方
 
-## Quick Start
+### **タートルプロッターのセットアップ**
+1. STLフォルダの亀パーツを3Dプリントする
+2. Schematicフォルダにある回路図を参考に配線する
+3. [Thonny IDE](https://thonny.org/) をインストール  
+4. Raspberry Pi Pico を USB で PC に接続、MicroPythonをインストール [参考](https://www.raspberrypi.com/documentation/microcontrollers/micropython.html)
+5. Codeフォルダにあるコードを全てPicoにDrag & Drop
+6. `turtle_plotter/code/main.py` を Thonny で開いて実行  
+5. `points.csv` を Pico にアップロード（省略可）
 
-### Turtle Plotter Setup
-1. **Set up the hardware**: See `turtle_plotter/` for assembly instructions
-2. **Install Thonny IDE**: Download from https://thonny.org/
-3. **Connect Raspberry Pi Pico** to your computer via USB
-4. **Open `turtle_plotter/code/main.py`** in Thonny and run it
-5. **Upload `points.csv`** to the Pico (optional - will draw test square if not present)
+**動作モード**
+- `points.csv` がある場合 → CSV 座標を描画  
+- ない場合 → `main.py` 内の `test_drawing` に従って 100mm 四方のテスト描画  
 
-**Operation Modes:**
-- **CSV Mode**: If `points.csv` is present → draws the specified path from CSV
-- **Test Mode**: If no CSV file → draws coordinates from the `test_drawing` Python list in `main.py` (default: 100mm × 100mm square - you can modify these coordinates freely)
+---
 
-### Vectorizer Web App Setup
-**Option 1: Use the Live App (Recommended)**
-- Visit https://vectorizer.streamlit.app/ to use the app immediately
+### 線描データ作成アプリ
+[https://vectorizer.streamlit.app/](https://vectorizer.streamlit.app/) にアクセスし、画像や をアップロード。  
+生成された CSV をダウンロードして `points.csv` として Pico に保存します。
+**主な機能**
+- 輪郭抽出・センターライン抽出  
+- 経路の最適化と単純化  
+- 画像 → CSV変換  （このプロッターでは使いませんが、SVGやGコードへの変換もできます）
 
-**Option 2: Run Locally**
-1. **Install the web app**: 
-   ```bash
-   cd vectorizer_web_app
-   pip install -r requirements.txt
-   streamlit run vectorizer_app.py
-   ```
-2. **Convert your images/SVGs** to CSV format
-3. **Download the CSV** and upload to the Pico as `points.csv`
+## より詳しい作り方
+[note](https://note.com/fumi_note/n/n50b205639b7f)をご覧ください。
 
-## To Do
-- Implement more turtle functions
-
-## License
-
-This project is licensed under the **Creative Commons Attribution 4.0 International License (CC BY 4.0)** or later.
-
-This means you are free to:
-- **Share** — copy and redistribute the material in any medium or format
-- **Adapt** — remix, transform, and build upon the material for any purpose, even commercially
-
-Under the following terms:
-- **Attribution** — You must give appropriate credit, provide a link to the license, and indicate if changes were made
-
-For more details, see: https://creativecommons.org/licenses/by/4.0/
-
-
+## 参考プロジェクト
+- 参考: [Make a Raspberry Pi Pico pen plotter](https://www.raspberrypi.com/news/make-a-raspberry-pi-pico-pen-plotter/)
 
 
